@@ -4,10 +4,10 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var session = require('express-session');
-var fileStore = require('session-file-store')(session);
+var FileStore = require('session-file-store')(session);
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+var index = require('./routes/index');
+var users = require('./routes/users');
 var dishRouter = require('./routes/dishRouter');
 var promoRouter = require('./routes/promoRouter');
 var leaderRouter = require('./routes/leaderRouter');
@@ -40,46 +40,30 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 //app.use(cookieParser('12345-67890-09876-54321'));
 app.use(session({
+  store:new FileStore(),
   name:'session-id',
   secret:'12345-67890-09876-54321',
   saveUninitialized:false,
-  resave:false,
-  store:new FileStore()
+  resave:false
+  
 }));
+
+app.use('/', index);
+app.use('/users', users);
+
 
 function auth(req, res, next) {
   console.log(req.session);
-  if (!req.session.user) {
-    var authHeader = req.headers.authorization;
-
-    if (!authHeader) {
+  if (!req.session.user) {   
       var err = new Error('You are not authenticated!');
-      res.setHeader('www-Authenticate', 'Basic');
-      err.status = 401;
+      err.status = 403;
       return next(err);
-    }
-
-    var auth = new Buffer(authHeader.split(' ')[1], 'base64').toString().split(':');
-    var username = auth[0];
-    var password = auth[1];
-
-    if (username == 'admin' && password == 'password') {
-      req.session.user = 'admin';
+    }else {
+       if (req.session.user === 'authenticated') {
       next();
-    }
-    else {
+       } else {
       var err = new Error('You are not authenticated!');
-      res.setHeader('www-Authenticate', 'Basic');
-      err.status = 401;
-      return next(err);
-    }
-  } else {
-    if (req.signedCookies.user == 'admin') {
-      next();
-    } else {
-      var err = new Error('You are not authenticated!');
-      res.setHeader('www-Authenticate', 'Basic');
-      err.status = 401;
+      err.status = 403;
       return next(err);
     }
   }
@@ -89,8 +73,7 @@ app.use(auth);
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+
 app.use('/dishes', dishRouter);
 app.use('/promos', promoRouter);
 app.use('/leaders', leaderRouter);
