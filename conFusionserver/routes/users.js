@@ -2,6 +2,7 @@ var express = require('express');
 const bodyParser = require('body-parser');
 var User = require('../models/user');
 var passport = require('passport');
+var authenticate = require('../authenticate');
 
 var router = express.Router();
 router.use(bodyParser.json());
@@ -28,10 +29,13 @@ router.post('/signup', function (req, res, next) {
   });
 });
 
-router.post('/login',passport.authenticate('local'),(req, res, next) => {
+console.log("not log in");
+router.post('/login',passport.authenticate('local'),(req, res) => {
+  console.log("log in");
+  var token = authenticate.getToken({_id: req.user._id});
   res.statusCode = 200;
   res.setHeader('Content-Type', 'application/json');
-  res.json({succes:true, status: 'YOU are successfully logged in!'});
+  res.json({succes:true,token:token, status: 'YOU are successfully logged in!'});
 
 });
 
